@@ -84,9 +84,9 @@ class InfluxDbInstance(object):
             dir=self.temp_dir_base)
 
         # find a couple free ports :
-        free_ports = get_free_ports(4)
+        free_ports = get_free_ports(5)
         ports = {}
-        for service in 'http', 'admin', 'meta', 'udp':
+        for service in 'http', 'admin', 'meta', 'udp', 'rpc':
             ports[service + '_port'] = free_ports.pop()
         if not udp_enabled:
             ports['udp_port'] = -1
