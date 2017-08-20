@@ -10,13 +10,12 @@ from sys import version_info
 
 import json
 import socket
-import requests
-import requests.exceptions
+import sys
 
 from influxdb.line_protocol import make_lines, quote_ident, quote_literal
+from influxdb.request import Request
 from influxdb.resultset import ResultSet
 from .exceptions import InfluxDBClientError
-from .exceptions import InfluxDBServerError
 
 try:
     xrange
@@ -27,6 +26,10 @@ if version_info[0] == 3:
     from urllib.parse import urlparse
 else:
     from urlparse import urlparse
+
+GEVENT = False
+if 'gevent' in sys.modules:
+    GEVENT = True
 
 
 class InfluxDBClient(object):
@@ -81,53 +84,31 @@ class InfluxDBClient(object):
                  proxies=None,
                  ):
         """Construct a new InfluxDBClient object."""
-        self.__host = host
-        self.__port = int(port)
-        self._username = username
-        self._password = password
-        self._database = database
-        self._timeout = timeout
-        self._retries = retries
+        self._host = host
+        scheme = "http"
+        if ssl:
+            scheme = "https"
 
-        self._verify_ssl = verify_ssl
-
-        self.__use_udp = use_udp
-        self.__udp_port = udp_port
-        self._session = requests.Session()
-        if use_udp:
-            self.udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-
-        self._scheme = "http"
-
-        if ssl is True:
-            self._scheme = "https"
-
-        if proxies is None:
-            self._proxies = {}
-        else:
-            self._proxies = proxies
-
-        self.__baseurl = "{0}://{1}:{2}".format(
-            self._scheme,
-            self._host,
-            self._port)
-
-        self._headers = {
+        baseurl = "{0}://{1}:{2}".format(
+            scheme,
+            host,
+            int(port))
+        headers = {
             'Content-type': 'application/json',
             'Accept': 'text/plain'
         }
 
-    @property
-    def _baseurl(self):
-        return self.__baseurl
+        self.http_handler = Request(baseurl=baseurl, headers=headers,
+                                    username=username, password=password,
+                                    verify_ssl=verify_ssl, timeout=timeout,
+                                    retries=retries, proxies=proxies,
+                                    database=database)
+        self.__host = host
 
-    @property
-    def _host(self):
-        return self.__host
-
-    @property
-    def _port(self):
-        return self.__port
+        self.__use_udp = use_udp
+        self.__udp_port = udp_port
+        if use_udp:
+            self.udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
     @property
     def _udp_port(self):
@@ -184,7 +165,7 @@ class InfluxDBClient(object):
         :param database: the name of the database to switch to
         :type database: str
         """
-        self._database = database
+        self.http_handler.set_database(database)
 
     def switch_user(self, username, password):
         """Change the client's username.
@@ -194,8 +175,7 @@ class InfluxDBClient(object):
         :param password: the password for the username
         :type password: str
         """
-        self._username = username
-        self._password = password
+        self.http_handler.switch_user(username=username, password=password)
 
     def request(self, url, method='GET', params=None, data=None,
                 expected_response_code=200, headers=None):
@@ -221,48 +201,10 @@ class InfluxDBClient(object):
         :raises InfluxDBClientError: if the response code is not the
             same as `expected_response_code` and is not a server error code
         """
-        url = "{0}/{1}".format(self._baseurl, url)
-
-        if headers is None:
-            headers = self._headers
-
-        if params is None:
-            params = {}
-
-        if isinstance(data, (dict, list)):
-            data = json.dumps(data)
-
-        # Try to send the request more than once by default (see #103)
-        retry = True
-        _try = 0
-        while retry:
-            try:
-                response = self._session.request(
-                    method=method,
-                    url=url,
-                    auth=(self._username, self._password),
-                    params=params,
-                    data=data,
-                    headers=headers,
-                    proxies=self._proxies,
-                    verify=self._verify_ssl,
-                    timeout=self._timeout
-                )
-                break
-            except requests.exceptions.ConnectionError:
-                _try += 1
-                if self._retries != 0:
-                    retry = _try < self._retries
-
-        else:
-            raise requests.exceptions.ConnectionError
-
-        if 500 <= response.status_code < 600:
-            raise InfluxDBServerError(response.content)
-        elif response.status_code == expected_response_code:
-            return response
-        else:
-            raise InfluxDBClientError(response.content, response.status_code)
+        return self.http_handler.request(
+            url=url, method=method, params=params,
+            data=data, headers=headers,
+            expected_response_code=expected_response_code)
 
     def write(self, data, params=None, expected_response_code=204,
               protocol='json'):
@@ -281,7 +223,7 @@ class InfluxDBClient(object):
         :returns: True, if the write operation is successful
         :rtype: bool
         """
-        headers = self._headers
+        headers = self.http_handler.get_headers()
         headers['Content-type'] = 'application/octet-stream'
 
         if params:
@@ -294,7 +236,7 @@ class InfluxDBClient(object):
         elif protocol == 'line':
             data = ('\n'.join(data) + '\n').encode('utf-8')
 
-        self.request(
+        self.http_handler.request(
             url="write",
             method='POST',
             params=params,
@@ -367,7 +309,7 @@ class InfluxDBClient(object):
             params = {}
 
         params['q'] = query
-        params['db'] = database or self._database
+        params['db'] = database or self.http_handler.get_database()
 
         if epoch is not None:
             params['epoch'] = epoch
@@ -377,7 +319,7 @@ class InfluxDBClient(object):
             if chunk_size > 0:
                 params['chunk_size'] = chunk_size
 
-        response = self.request(
+        response = self.http_handler.request(
             url="query",
             method='GET',
             params=params,
@@ -460,6 +402,16 @@ class InfluxDBClient(object):
 
     @staticmethod
     def _batches(iterable, size):
+        """
+        Generator.
+
+        :param iterable: list
+        :type iterable: Iterable
+        :param size: Number of items by chunk
+        :type size: int
+        :return: generator
+        :rtype: mixed
+        """
         for i in xrange(0, len(iterable), size):
             yield iterable[i:i + size]
 
@@ -491,7 +443,7 @@ class InfluxDBClient(object):
             data = points
 
         params = {
-            'db': database or self._database
+            'db': database or self.http_handler.get_database()
         }
 
         if time_precision is not None:
@@ -529,7 +481,8 @@ class InfluxDBClient(object):
         return list(self.query("SHOW DATABASES").get_points())
 
     def create_database(self, dbname):
-        """Create a new database in InfluxDB.
+        """
+        Create a new database in InfluxDB.
 
         :param dbname: the name of the database to create
         :type dbname: str
@@ -537,7 +490,8 @@ class InfluxDBClient(object):
         self.query("CREATE DATABASE {0}".format(quote_ident(dbname)))
 
     def drop_database(self, dbname):
-        """Drop a database from InfluxDB.
+        """
+        Drop a database from InfluxDB.
 
         :param dbname: the name of the database to drop
         :type dbname: str
@@ -546,7 +500,8 @@ class InfluxDBClient(object):
 
     def create_retention_policy(self, name, duration, replication,
                                 database=None, default=False):
-        """Create a retention policy for a database.
+        """
+        Create a retention policy for a database.
 
         :param name: the name of the new retention policy
         :type name: str
@@ -568,7 +523,8 @@ class InfluxDBClient(object):
         query_string = \
             "CREATE RETENTION POLICY {0} ON {1} " \
             "DURATION {2} REPLICATION {3}".format(
-                quote_ident(name), quote_ident(database or self._database),
+                quote_ident(name),
+                quote_ident(database or self.http_handler.get_database()),
                 duration, replication)
 
         if default is True:
@@ -578,7 +534,8 @@ class InfluxDBClient(object):
 
     def alter_retention_policy(self, name, database=None,
                                duration=None, replication=None, default=None):
-        """Mofidy an existing retention policy for a database.
+        """
+        Mofidy an existing retention policy for a database.
 
         :param name: the name of the retention policy to modify
         :type name: str
@@ -603,7 +560,8 @@ class InfluxDBClient(object):
         """
         query_string = (
             "ALTER RETENTION POLICY {0} ON {1}"
-        ).format(quote_ident(name), quote_ident(database or self._database))
+        ).format(quote_ident(name),
+                 quote_ident(database or self.http_handler.get_database()))
         if duration:
             query_string += " DURATION {0}".format(duration)
         if replication:
@@ -614,7 +572,8 @@ class InfluxDBClient(object):
         self.query(query_string)
 
     def drop_retention_policy(self, name, database=None):
-        """Drop an existing retention policy for a database.
+        """
+        Drop an existing retention policy for a database.
 
         :param name: the name of the retention policy to drop
         :type name: str
@@ -624,11 +583,13 @@ class InfluxDBClient(object):
         """
         query_string = (
             "DROP RETENTION POLICY {0} ON {1}"
-        ).format(quote_ident(name), quote_ident(database or self._database))
+        ).format(quote_ident(name),
+                 quote_ident(database or self.http_handler.get_database()))
         self.query(query_string)
 
     def get_list_retention_policies(self, database=None):
-        """Get the list of retention policies for a database.
+        """
+        Get the list of retention policies for a database.
 
         :param database: the name of the database, defaults to the client's
             current database
@@ -647,19 +608,20 @@ class InfluxDBClient(object):
               u'name': u'default',
               u'replicaN': 1}]
         """
-        if not (database or self._database):
+        if not (database or self.http_handler.get_database()):
             raise InfluxDBClientError(
                 "get_list_retention_policies() requires a database as a "
                 "parameter or the client to be using a database")
 
         rsp = self.query(
             "SHOW RETENTION POLICIES ON {0}".format(
-                quote_ident(database or self._database))
+                quote_ident(database or self.http_handler.get_database()))
         )
         return list(rsp.get_points())
 
     def get_list_users(self):
-        """Get the list of all users in InfluxDB.
+        """
+        Get the list of all users in InfluxDB.
 
         :returns: all users in InfluxDB
         :rtype: list of dictionaries
@@ -677,7 +639,8 @@ class InfluxDBClient(object):
         return list(self.query("SHOW USERS").get_points())
 
     def create_user(self, username, password, admin=False):
-        """Create a new user in InfluxDB.
+        """
+        Create a new user in InfluxDB.
 
         :param username: the new username to create
         :type username: str
@@ -694,7 +657,8 @@ class InfluxDBClient(object):
         self.query(text)
 
     def drop_user(self, username):
-        """Drop a user from InfluxDB.
+        """
+        Drop a user from InfluxDB.
 
         :param username: the username to drop
         :type username: str
@@ -703,7 +667,8 @@ class InfluxDBClient(object):
         self.query(text)
 
     def set_user_password(self, username, password):
-        """Change the password of an existing user.
+        """
+        Change the password of an existing user.
 
         :param username: the username who's password is being changed
         :type username: str
@@ -715,7 +680,8 @@ class InfluxDBClient(object):
         self.query(text)
 
     def delete_series(self, database=None, measurement=None, tags=None):
-        """Delete series from a database.
+        """
+        Delete series from a database.
 
         Series can be filtered by measurement and tags.
 
@@ -727,7 +693,7 @@ class InfluxDBClient(object):
         :param tags: Delete all series that match given tags
         :type tags: dict
         """
-        database = database or self._database
+        database = database or self.http_handler.get_database()
         query_str = 'DROP SERIES'
         if measurement:
             query_str += ' FROM {0}'.format(quote_ident(measurement))
@@ -825,16 +791,25 @@ class InfluxDBClient(object):
         :param protocol: protocol of input data, either 'json' or 'line'
         :type protocol: str
         """
+        data = None
         if protocol == 'json':
             data = make_lines(packet).encode('utf-8')
         elif protocol == 'line':
             data = ('\n'.join(packet) + '\n').encode('utf-8')
         self.udp_socket.sendto(data, (self._host, self._udp_port))
 
+    def get_database(self):
+        """
+        Return current database.
+
+        :return: Curent Database
+        :rtype: basestring
+        """
+        return self.http_handler.get_database()
+
     def close(self):
         """Close http session."""
-        if isinstance(self._session, requests.Session):
-            self._session.close()
+        self.http_handler.close()
 
 
 def _parse_dsn(dsn):

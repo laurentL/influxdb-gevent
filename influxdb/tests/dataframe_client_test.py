@@ -591,4 +591,4 @@ class TestDataFrameClient(unittest.TestCase):
         """Test data source name deconstructor in TestDataFrameClient."""
         client = DataFrameClient.from_dsn('influxdb://localhost:8086')
         self.assertIsInstance(client, DataFrameClient)
-        self.assertEqual('http://localhost:8086', client._baseurl)
+        self.assertEqual('http://localhost:8086', client.http_handler._baseurl)

@@ -71,7 +71,9 @@ def _mocked_session(cli, method="GET", status_code=200, content=""):
 
         return _build_response_object(status_code=status_code, content=c)
 
-    return mock.patch.object(cli._session, 'request', side_effect=request)
+    return mock.patch.object(cli.http_handler._session,
+                             'request',
+                             side_effect=request)
 
 
 class TestInfluxDBClient(unittest.TestCase):
@@ -102,47 +104,47 @@ class TestInfluxDBClient(unittest.TestCase):
     def test_scheme(self):
         """Set up the test schema for TestInfluxDBClient object."""
         cli = InfluxDBClient('host', 8086, 'username', 'password', 'database')
-        self.assertEqual('http://host:8086', cli._baseurl)
+        self.assertEqual('http://host:8086', cli.http_handler._baseurl)
 
         cli = InfluxDBClient(
             'host', 8086, 'username', 'password', 'database', ssl=True
         )
-        self.assertEqual('https://host:8086', cli._baseurl)
+        self.assertEqual('https://host:8086', cli.http_handler._baseurl)
 
     def test_dsn(self):
         """Set up the test datasource name for TestInfluxDBClient object."""
         cli = InfluxDBClient.from_dsn('influxdb://192.168.0.1:1886')
-        self.assertEqual('http://192.168.0.1:1886', cli._baseurl)
+        self.assertEqual('http://192.168.0.1:1886', cli.http_handler._baseurl)
 
         cli = InfluxDBClient.from_dsn(self.dsn_string)
-        self.assertEqual('http://my.host.fr:1886', cli._baseurl)
-        self.assertEqual('uSr', cli._username)
-        self.assertEqual('pWd', cli._password)
-        self.assertEqual('db', cli._database)
+        self.assertEqual('http://my.host.fr:1886', cli.http_handler._baseurl)
+        self.assertEqual('uSr', cli.http_handler._username)
+        self.assertEqual('pWd', cli.http_handler._password)
+        self.assertEqual('db', cli.http_handler.get_database())
         self.assertFalse(cli._use_udp)
 
         cli = InfluxDBClient.from_dsn('udp+' + self.dsn_string)
         self.assertTrue(cli._use_udp)
 
         cli = InfluxDBClient.from_dsn('https+' + self.dsn_string)
-        self.assertEqual('https://my.host.fr:1886', cli._baseurl)
+        self.assertEqual('https://my.host.fr:1886', cli.http_handler._baseurl)
 
         cli = InfluxDBClient.from_dsn('https+' + self.dsn_string,
                                       **{'ssl': False})
-        self.assertEqual('http://my.host.fr:1886', cli._baseurl)
+        self.assertEqual('http://my.host.fr:1886', cli.http_handler._baseurl)
 
     def test_switch_database(self):
         """Test switch database in TestInfluxDBClient object."""
         cli = InfluxDBClient('host', 8086, 'username', 'password', 'database')
         cli.switch_database('another_database')
-        self.assertEqual('another_database', cli._database)
+        self.assertEqual('another_database', cli.get_database())
 
     def test_switch_user(self):
         """Test switch user in TestInfluxDBClient object."""
         cli = InfluxDBClient('host', 8086, 'username', 'password', 'database')
         cli.switch_user('another_username', 'another_password')
-        self.assertEqual('another_username', cli._username)
-        self.assertEqual('another_password', cli._password)
+        self.assertEqual('another_username', cli.http_handler._username)
+        self.assertEqual('another_password', cli.http_handler._password)
 
     def test_write(self):
         """Test write in TestInfluxDBClient object."""
