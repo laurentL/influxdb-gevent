@@ -20,10 +20,12 @@ import time
 import unittest
 import warnings
 
+
+from influxdb.tests import skipIfPYpy, using_pypy, skipServerTests, LoadGevent
+
 from influxdb import InfluxDBClient
 from influxdb.exceptions import InfluxDBClientError
 
-from influxdb.tests import skipIfPYpy, using_pypy, skipServerTests
 from influxdb.tests.server_tests.base import ManyTestCasesWithServerMixin
 from influxdb.tests.server_tests.base import SingleTestCaseWithServerMixin
 

@@ -8,14 +8,13 @@ from __future__ import unicode_literals
 
 import sys
 
-from influxdb.tests import using_pypy
+from influxdb.tests import using_pypy, LoadGevent
 from influxdb.tests.server_tests.influxdb_instance import InfluxDbInstance
 
 from influxdb.client import InfluxDBClient
 
 if not using_pypy:
     from influxdb.dataframe_client import DataFrameClient
-
 
 def _setup_influxdb_server(inst):
     inst.influxd_inst = InfluxDbInstance(

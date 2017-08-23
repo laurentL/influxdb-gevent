@@ -12,8 +12,10 @@ import json
 import socket
 import sys
 
+from datetime import datetime
+
 from influxdb.line_protocol import make_lines, quote_ident, quote_literal
-from influxdb.request import Request
+
 from influxdb.resultset import ResultSet
 from .exceptions import InfluxDBClientError
 
@@ -27,9 +29,13 @@ if version_info[0] == 3:
 else:
     from urlparse import urlparse
 
-GEVENT = False
-if 'gevent' in sys.modules:
+
+if 'SolBase' in sys.modules:
     GEVENT = True
+    from influxdb.request_gevent import Request
+else:
+    GEVENT = False
+    from influxdb.request import Request
 
 
 class InfluxDBClient(object):
@@ -810,6 +816,19 @@ class InfluxDBClient(object):
     def close(self):
         """Close http session."""
         self.http_handler.close()
+
+    @staticmethod
+    def date_format(date=datetime.utcnow()):
+        """
+        Format a date to influxdb json.
+        
+        :param date: datetime 
+        :type date: datetime
+        :return: Date in str
+        :rtype: str
+        """
+        return date.strftime('%Y-%m-%dT%H:%M:%SZ')
+
 
 
 def _parse_dsn(dsn):

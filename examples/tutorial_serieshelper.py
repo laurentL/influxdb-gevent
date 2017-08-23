@@ -12,6 +12,8 @@ password = 'root'
 dbname = 'mydb'
 
 myclient = InfluxDBClient(host, port, user, password, dbname)
+myclient.create_database(dbname)
+
 
 # Uncomment the following code if the database is not yet created
 # myclient.create_database(dbname)
@@ -48,14 +50,20 @@ class MySeriesHelper(SeriesHelper):
 # The following will create *five* (immutable) data points.
 # Since bulk_size is set to 5, upon the fifth construction call, *all* data
 # points will be written on the wire via MySeriesHelper.Meta.client.
-MySeriesHelper(server_name='us.east-1', some_stat=159, other_stat=10)
-MySeriesHelper(server_name='us.east-1', some_stat=158, other_stat=20)
-MySeriesHelper(server_name='us.east-1', some_stat=157, other_stat=30)
-MySeriesHelper(server_name='us.east-1', some_stat=156, other_stat=40)
-MySeriesHelper(server_name='us.east-1', some_stat=155, other_stat=50)
+for ser in range(10):
+    MySeriesHelper(server_name='us.east-%s' % ser, some_stat=159,
+                   other_stat=10)
+    MySeriesHelper(server_name='us.east-%s' % ser, some_stat=158,
+                   other_stat=20)
+    MySeriesHelper(server_name='us.east-%s' % ser, some_stat=157,
+                   other_stat=30)
+    MySeriesHelper(server_name='us.east-%s' % ser, some_stat=156,
+                   other_stat=40)
+    MySeriesHelper(server_name='us.east-%s' % ser, some_stat=155,
+                   other_stat=50)
 
 # To manually submit data points which are not yet written, call commit:
 MySeriesHelper.commit()
 
 # To inspect the JSON which will be written, call _json_body_():
-MySeriesHelper._json_body_()
+print(MySeriesHelper._json_body_())

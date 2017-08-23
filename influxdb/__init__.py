@@ -6,6 +6,8 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+from influxdb.tests import LoadGevent
+
 from .client import InfluxDBClient
 from .dataframe_client import DataFrameClient
 from .helper import SeriesHelper

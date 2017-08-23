@@ -14,6 +14,8 @@ def main(host='localhost', port=8086):
     dbuser = 'smly'
     dbuser_password = 'my_secret_password'
     query = 'select value from cpu_load_short;'
+    client = InfluxDBClient(host, port, user, password, dbname)
+
     json_body = [
         {
             "measurement": "cpu_load_short",
@@ -21,7 +23,7 @@ def main(host='localhost', port=8086):
                 "host": "server01",
                 "region": "us-west"
             },
-            "time": "2009-11-10T23:00:00Z",
+            "time": client.date_format(),
             "fields": {
                 "Float_value": 0.64,
                 "Int_value": 3,
@@ -31,7 +33,8 @@ def main(host='localhost', port=8086):
         }
     ]
 
-    client = InfluxDBClient(host, port, user, password, dbname)
+    print("Drop database: %s" % dbname)
+    client.drop_database(dbname)
 
     print("Create database: " + dbname)
     client.create_database(dbname)
