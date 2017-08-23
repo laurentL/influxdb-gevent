@@ -2,3 +2,4 @@ nose
 nose-cov
 mock
 requests-mock
+pandas==0.20.1

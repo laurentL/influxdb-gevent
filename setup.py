@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """Define the setup options."""
+import sys
 
 try:
     import distribute_setup
@@ -23,12 +24,19 @@ with open(os.path.join(os.path.dirname(__file__), 'influxdb', '__init__.py')) as
 with open('requirements.txt', 'r') as f:
     requires = [x.strip() for x in f if x.strip()]
 
+
+with open('optional-test-requirements.txt', 'r') as f:
+    optional_test_requires = [x.strip() for x in f if x.strip()]
+
 with open('test-requirements.txt', 'r') as f:
     test_requires = [x.strip() for x in f if x.strip()]
 
 with open('README.rst', 'r') as f:
     readme = f.read()
 
+using_pypy = hasattr(sys, "pypy_version_info")
+if using_pypy:
+    test_requires = test_requires + optional_test_requires
 
 setup(
     name='influxdb',

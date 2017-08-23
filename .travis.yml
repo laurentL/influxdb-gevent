@@ -11,17 +11,25 @@ matrix:
       env: TOX_ENV=docs
   include:
     - python: 2.7
-      env: TOX_ENV=py27
+      env: TOX_ENV=py27-geventFalse
+    - python: 3.4
+      env: TOX_ENV=py34-geventFalse
+    - python: 3.5
+      env: TOX_ENV=py35-geventFalse
+    - python: 3.6
+      env: TOX_ENV=py36-geventFalse
+    - python: 2.7
+      env: TOX_ENV=py27-geventTrue
+    - python: 3.4
+      env: TOX_ENV=py34-geventTrue
+    - python: 3.5
+      env: TOX_ENV=py35-geventTrue
+    - python: 3.6
+      env: TOX_ENV=py36-geventTrue
     - python: 2.7
       env: TOX_ENV=pep257
     - python: pypy-5.3.1
       env: TOX_ENV=pypy
-    - python: 3.4
-      env: TOX_ENV=py34
-    - python: 3.5
-      env: TOX_ENV=py35
-    - python: 3.6
-      env: TOX_ENV=py36
     - python: 3.6
       env: TOX_ENV=docs
     - python: 3.6
