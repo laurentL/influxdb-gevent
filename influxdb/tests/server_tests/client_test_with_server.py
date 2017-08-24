@@ -22,7 +22,7 @@ import warnings
 
 
 from influxdb.tests import skipIfPYpy, using_pypy, skipServerTests, LoadGevent
-
+LoadGevent.patch()
 from influxdb import InfluxDBClient
 from influxdb.exceptions import InfluxDBClientError
 

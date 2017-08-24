@@ -107,8 +107,6 @@ class Request(HTTPHandler):
         :raises InfluxDBClientError: if the response code is not the
             same as `expected_response_code` and is not a server error code
         """
-
-        print ('XXXXXXXXXXXXX')
         url = "{0}/{1}".format(self._baseurl, url)
 
         if headers is None:
@@ -159,8 +157,6 @@ class Request(HTTPHandler):
                     retry = _try < self._retries
                 else:
                     logger.warning(SolBase.extostr(e))
-
-
         else:
             raise Exception('Too many retries')
 
@@ -171,4 +167,3 @@ class Request(HTTPHandler):
         else:
             raise InfluxDBClientError(hresp.content,
                                       hresp.status_code)
-

@@ -821,14 +821,13 @@ class InfluxDBClient(object):
     def date_format(date=datetime.utcnow()):
         """
         Format a date to influxdb json.
-        
-        :param date: datetime 
+
+        :param date: datetime
         :type date: datetime
         :return: Date in str
         :rtype: str
         """
         return date.strftime('%Y-%m-%dT%H:%M:%SZ')
-
 
 
 def _parse_dsn(dsn):

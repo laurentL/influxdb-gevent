@@ -1,14 +1,15 @@
 
 
 InfluxDB-Python is a client for interacting with InfluxDB_. Maintained by @aviau (https://github.com/aviau).
+InfluxDB-Gevent is a client for interacting with InfluxDB_ using gevent, forked from InfluxDB-Python. Maintained by @laurentL (https://github.com/laurentL).
 
 **Help needed:** Development of this library is made by the community and help is needed. A co-maintainer would be welcome. To contribute, take a look at the issues list of simply contact @aviau.
 
-.. image:: https://travis-ci.org/influxdata/influxdb-python.svg?branch=master
+.. image:: https://travis-ci.org/laurentL/influxdb-gevent.svg?branch=master
     :target: https://travis-ci.org/influxdata/influxdb-python
 
-.. image:: https://readthedocs.org/projects/influxdb-python/badge/?version=latest&style
-    :target: http://influxdb-python.readthedocs.org/
+.. image:: https://readthedocs.org/projects/influxdb-gevent/badge/?version=latest&style
+    :target: http://influxdb-gevent.readthedocs.io/en/latest//
     :alt: Documentation Status
 
 .. image:: https://img.shields.io/coveralls/influxdata/influxdb-python.svg
@@ -36,20 +37,18 @@ Install, upgrade and uninstall InfluxDB-Python with these commands::
     $ pip install --upgrade influxdb
     $ pip uninstall influxdb
 
-On Debian/Ubuntu, you can install it with this command::
-
-    $ sudo apt-get install python-influxdb
 
 Dependencies
 ============
 
-The InfluxDB-Python distribution is supported and tested on Python 2.7, 3.3, 3.4, 3.5, 3.6, PyPy and PyPy3.
+The InfluxDB-gevent distribution is supported and tested on Python 2.7, 3.3, 3.4, 3.5, 3.6, PyPy and PyPy3.
 
 **Note:** Python 3.2 is currently untested. See ``.travis.yml``.
+**Note:** on Pypy and Pypy3, gevent is disabled, so  influxdb-gevent failback on requests.
 
 Main dependency is:
-
-- Requests: HTTP library for human beings (http://docs.python-requests.org/)
+- gevent project: pythonsol (https://bitbucket.org/LoloCH/pythonsol/overview) and geventhttpclient (https://pypi.python.org/pypi/geventhttpclient)
+- no gevent project : Requests, HTTP library for human beings (http://docs.python-requests.org/)
 
 
 Additional dependencies are:
@@ -63,7 +62,7 @@ Additional dependencies are:
 Documentation
 =============
 
-InfluxDB-Python documentation is available at http://influxdb-python.readthedocs.org
+InfluxDB-gevent documentation is available at http://influxdb-gevent.readthedocs.io/en/latest/
 
 You will need Sphinx_ installed to generate the documentation.
 
@@ -134,8 +133,8 @@ Development
 All development is done on Github_. Use Issues_ to report
 problems or submit contributions.
 
-.. _Github: https://github.com/influxdb/influxdb-python/
-.. _Issues: https://github.com/influxdb/influxdb-python/issues
+.. _Github: https://github.com/laurentL/influxdb-gevent
+.. _Issues: https://github.com/laurentL/influxdb-gevent/issues
 
 
 TODO

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Get from knockdaemon.
+
 # ===============================================================================
 #
 # Copyright (C) 2013/2017 Laurent Labatut / Laurent Champagnac
@@ -42,19 +43,14 @@ urllib3.disable_warnings()
 
 
 class HttpClient(object):
-    """
-    Http client
-    """
+    """Http client."""
 
     HTTP_IMPL_AUTO = None
     HTTP_IMPL_GEVENT = 1
     HTTP_IMPL_URLLIB3 = 3
 
     def __init__(self):
-        """
-        Const
-        """
-
+        """Http client."""
         # Gevent
         self._gevent_pool_max = 1024
         self._gevent_locker = Lock()
@@ -73,7 +69,8 @@ class HttpClient(object):
 
     def gevent_from_pool(self, url, http_request):
         """
-        Get a gevent client from url and request
+        Get a gevent client from url and request.
+        
         :param url: URL
         :type url: URL
         :param http_request: HttpRequest
@@ -81,7 +78,6 @@ class HttpClient(object):
         :return HTTPClient
         :rtype HTTPClient
         """
-
         # Compute key
         key = "{0}#{1}#{2}#{3}#{4}#{5}#{6}#{7}#{8}#{9}#".format(
             # host and port
@@ -134,13 +130,13 @@ class HttpClient(object):
 
     def urllib3_from_pool(self, http_request):
         """
-        Get a u3 pool from url and request
+        Get a u3 pool from url and request.
+        
         :param http_request: HttpRequest
         :type http_request: HttpRequest
         :return Object
         :rtype Object
         """
-
         if not http_request.http_proxy_host:
             return self._u3_basic_pool
 
@@ -180,13 +176,13 @@ class HttpClient(object):
 
     def go_http(self, http_request):
         """
-        Perform an http request
+        Perform an http request.
+        
         :param http_request: HttpRequest
         :type http_request: HttpRequest
         :return HttpResponse
         :rtype HttpResponse
         """
-
         ms = SolBase.mscurrent()
         http_response = HttpResponse()
         try:
@@ -210,13 +206,13 @@ class HttpClient(object):
 
     def _go_http_internal(self, http_request, http_response):
         """
-        Perform an http request
+        Perform an http request.
+
         :param http_request: HttpRequest
         :type http_request: HttpRequest
         :param http_response: HttpResponse
         :type http_response: HttpResponse
         """
-
         try:
             # Default to gevent
             impl = http_request.force_http_implementation
@@ -255,13 +251,13 @@ class HttpClient(object):
 
     def _go_gevent(self, http_request, http_response):
         """
-        Perform an http request
+        Perform an http request.
+        
         :param http_request: HttpRequest
         :type http_request: HttpRequest
         :param http_response: HttpResponse
         :type http_response: HttpResponse
         """
-
         # Implementation
         http_response.http_implementation = HttpClient.HTTP_IMPL_GEVENT
 
@@ -270,7 +266,7 @@ class HttpClient(object):
 
         # Patch for path attribute error
         try:
-            _ = url.path
+            url.path
         except AttributeError:
             url.path = "/"
 
@@ -332,13 +328,13 @@ class HttpClient(object):
 
     def _go_urllib3(self, http_request, http_response):
         """
-        Perform an http request
+        Perform an http request.
+        
         :param http_request: HttpRequest
         :type http_request: HttpRequest
         :param http_response: HttpResponse
         :type http_response: HttpResponse
         """
-
         # Implementation
         http_response.http_implementation = HttpClient.HTTP_IMPL_URLLIB3
 

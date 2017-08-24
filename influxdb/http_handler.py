@@ -39,7 +39,7 @@ class HTTPHandler(object):
                  database=False, zip_enabled=False):
         """
         Request.
-        
+
         :param baseurl: url
         :type baseurl: basestring
         :param headers: headers
@@ -71,7 +71,6 @@ class HTTPHandler(object):
         self._database = database
         self._zip_enabled = zip_enabled
 
-
         if proxies is None:
             self._proxies = {}
         else:
@@ -102,7 +101,6 @@ class HTTPHandler(object):
             same as `expected_response_code` and is not a server error code
         """
         raise NotImplementedError
-
 
     def set_database(self, database):
         """

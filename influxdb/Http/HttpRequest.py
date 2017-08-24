@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Get from knockdaemon.
+
 # ===============================================================================
 #
 # Copyright (C) 2013/2017 Laurent Labatut / Laurent Champagnac
@@ -26,15 +27,10 @@ from influxdb.Http.HttpClient import HttpClient
 
 
 class HttpRequest(object):
-    """
-    Http client
-    """
+    """Http Client."""
 
     def __init__(self):
-        """
-        Const
-        """
-
+        """Http Client."""
         # Uri
         self.uri = None
 
@@ -78,12 +74,12 @@ class HttpRequest(object):
 
     def __str__(self):
         """
-        To string override
+        To string override.
+        
         :return: A string
         :rtype string
         """
-
-        return "hreq:uri={0}*pd={1}*ka={2}*cc={3}*httpsi={4}*prox={5}*socks={6}*force={7}*h={8}*to.c/n/g={9}/{10}/{11}".format(
+        return "hreq:uri={0}*pd={1}*ka={2}*cc={3}*httpsi={4}*prox={5}*socks={6}*force={7}*h={8}*to.c/n/g={9}/{10}/{11}".format( # NOQA
             self.uri,
             len(self.post_data) if self.post_data else "None",
             self.keep_alive,
@@ -93,5 +89,4 @@ class HttpRequest(object):
             "{0}:{1}".format(self.socks5_proxy_host, self.socks5_proxy_port),
             self.force_http_implementation,
             self.headers,
-            self.connection_timeout_ms, self.network_timeout_ms, self.general_timeout_ms,
-        )
+            self.connection_timeout_ms, self.network_timeout_ms, self.general_timeout_ms)

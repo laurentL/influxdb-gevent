@@ -35,15 +35,16 @@ with open('README.rst', 'r') as f:
     readme = f.read()
 
 using_pypy = hasattr(sys, "pypy_version_info")
-if using_pypy:
+if not using_pypy:
     test_requires = test_requires + optional_test_requires
+
 
 setup(
     name='influxdb',
     version=version,
     description="InfluxDB client",
     long_description=readme,
-    url='https://github.com/influxdb/influxdb-python',
+    url='https://github.com/laurentL/influxdb-gevent',
     license='MIT License',
     packages=find_packages(exclude=['tests']),
     test_suite='influxdb.tests',

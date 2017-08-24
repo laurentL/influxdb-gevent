@@ -1,10 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-===============================================================================
-
-Copyright (C) 2013/2016 Laurent Labatut / Laurent Champagnac
-
-
+Copyright (C) 2013/2016 Laurent Labatut / Laurent Champagnac.
 
  This program is free software; you can redistribute it and/or
  modify it under the terms of the GNU General Public License
@@ -24,12 +20,20 @@ Copyright (C) 2013/2016 Laurent Labatut / Laurent Champagnac
 
 import os
 import unittest
-
-using_gevent = False
+force_gevent = False
 if os.environ.get('LOAD_GEVENT', False) == 'True':
-    from pythonsol.SolBase import SolBase
-    SolBase.voodoo_init()
-    using_gevent = True
+    force_gevent = True
 
-skipIfNotGevent = unittest.skipIf(using_gevent, "Skipping this test on no gevent environement.")
-skipIfGevent = unittest.skipIf(not using_gevent, "Skipping this test on gevent environement.")
+skipIfNotGevent = unittest.skipIf(
+    force_gevent,
+    "Skipping this test on no gevent environement.")
+skipIfGevent = unittest.skipIf(
+    not force_gevent,
+    "Skipping this test on gevent environement.")
+
+
+def patch():
+    """Import gevent and dependencie."""
+    if force_gevent:
+        from pythonsol.SolBase import SolBase
+        SolBase.voodoo_init()

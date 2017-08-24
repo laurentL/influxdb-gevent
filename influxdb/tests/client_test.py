@@ -33,7 +33,7 @@ import requests_mock
 from nose.tools import raises
 
 from influxdb.tests import LoadGevent
-
+LoadGevent.patch()
 from influxdb import InfluxDBClient
 from influxdb.resultset import ResultSet
 

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Get from knockdaemon.
+
 # ===============================================================================
 #
 # Copyright (C) 2013/2017 Laurent Labatut / Laurent Champagnac
@@ -26,15 +27,10 @@ from pythonsol.SolBase import SolBase
 
 
 class HttpResponse(object):
-    """
-    Http response
-    """
+    """Http response."""
 
     def __init__(self):
-        """
-        Const
-        """
-
+        """Http response."""
         # Related request
         self.http_request = None
 
@@ -63,18 +59,18 @@ class HttpResponse(object):
 
     def __str__(self):
         """
-        To string override
+        To string override.
+        
         :return: A string
         :rtype string
         """
-
-        return "hresp:st={0}*cl={1}*impl={2}*ms={3}*h={4}*req.uri={5}*req.h={6}*ex={7}".format(
-            self.status_code,
-            self.content_length,
-            self.http_implementation,
-            self.elapsed_ms,
-            self.headers,
-            self.http_request.uri,
-            self.http_request.headers,
-            SolBase.extostr(self.exception) if self.exception else "None",
-        )
+        return "hresp:st={0}*cl={1}*impl={2}*ms={3}*h={4}*req.uri={5}*req.h={6}*ex={7}" \
+            .format(self.status_code,
+                    self.content_length,
+                    self.http_implementation,
+                    self.elapsed_ms,
+                    self.headers,
+                    self.http_request.uri,
+                    self.http_request.headers,
+                    SolBase.extostr(self.exception) if self.exception else "None",
+                    )

@@ -7,7 +7,7 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 from influxdb.tests import LoadGevent
-
+LoadGevent.patch()
 from .client import InfluxDBClient
 from .dataframe_client import DataFrameClient
 from .helper import SeriesHelper
