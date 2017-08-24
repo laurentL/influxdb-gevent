@@ -28,7 +28,10 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import requests
-import ujson as ujson
+try:
+    import ujson as json
+except:
+    import json
 
 from influxdb.exceptions import InfluxDBServerError, InfluxDBClientError
 from influxdb.http_handler import HTTPHandler
@@ -106,7 +109,7 @@ class Request(HTTPHandler):
             params = {}
 
         if isinstance(data, (dict, list)):
-            data = ujson.dumps(data)
+            data = json.dumps(data)
 
         # Try to send the request more than once by default (see #103)
         retry = True

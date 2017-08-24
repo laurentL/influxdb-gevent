@@ -118,7 +118,7 @@ class Request(HTTPHandler):
             params = {}
 
         if isinstance(data, (dict, list)):
-            data = ujson.dumps(data)
+            data = json.dumps(data)
 
         # Try to send the request more than once by default (see #103)
         retry = True
