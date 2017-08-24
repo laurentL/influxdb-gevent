@@ -70,7 +70,7 @@ class HttpClient(object):
     def gevent_from_pool(self, url, http_request):
         """
         Get a gevent client from url and request.
-        
+       
         :param url: URL
         :type url: URL
         :param http_request: HttpRequest
@@ -131,7 +131,7 @@ class HttpClient(object):
     def urllib3_from_pool(self, http_request):
         """
         Get a u3 pool from url and request.
-        
+       
         :param http_request: HttpRequest
         :type http_request: HttpRequest
         :return Object
@@ -177,7 +177,7 @@ class HttpClient(object):
     def go_http(self, http_request):
         """
         Perform an http request.
-        
+       
         :param http_request: HttpRequest
         :type http_request: HttpRequest
         :return HttpResponse
@@ -252,7 +252,7 @@ class HttpClient(object):
     def _go_gevent(self, http_request, http_response):
         """
         Perform an http request.
-        
+       
         :param http_request: HttpRequest
         :type http_request: HttpRequest
         :param http_response: HttpResponse
@@ -329,7 +329,7 @@ class HttpClient(object):
     def _go_urllib3(self, http_request, http_response):
         """
         Perform an http request.
-        
+       
         :param http_request: HttpRequest
         :type http_request: HttpRequest
         :param http_response: HttpResponse

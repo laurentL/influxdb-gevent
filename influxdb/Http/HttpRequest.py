@@ -75,7 +75,7 @@ class HttpRequest(object):
     def __str__(self):
         """
         To string override.
-        
+       
         :return: A string
         :rtype string
         """
