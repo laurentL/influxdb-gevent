@@ -1,2 +1,3 @@
 pythonsol
 geventhttpclient
+pandas==0.20.1
