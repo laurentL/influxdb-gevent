@@ -28,10 +28,7 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import requests
-try:
-    import ujson as json
-except:
-    import json
+import ujson as json
 
 from influxdb.exceptions import InfluxDBServerError, InfluxDBClientError
 from influxdb.http_handler import HTTPHandler
@@ -40,13 +37,13 @@ from influxdb.http_handler import HTTPHandler
 class Request(HTTPHandler):
     """Http interface using request."""
 
-    def __init__(self, baseurl, headers, username, password, verify_ssl,
+    def __init__(self, base_url, headers, username, password, verify_ssl,
                  timeout, retries, proxies, database=False, zip_enabled=False):
         """
         Request.
 
-        :param baseurl: url
-        :type baseurl: basestring
+        :param base_url: url
+        :type base_url: basestring
         :param headers: headers
         :type headers: dict
         :param username: username
@@ -67,7 +64,7 @@ class Request(HTTPHandler):
         :type zip_enabled: bool
         """
         super(Request, self).__init__(
-            baseurl, headers, username, password, verify_ssl, timeout, retries,
+            base_url, headers, username, password, verify_ssl, timeout, retries,
             proxies, database=database, zip_enabled=zip_enabled)
 
         if proxies is None:

@@ -22,9 +22,17 @@ from __future__ import unicode_literals
 import random
 import socket
 import unittest
+import sys
+
+if sys.version_info[0] == 3:
+    # noinspection PyCompatibility
+    from urllib.parse import parse_qs
+else:
+    from urlparse import parse_qs
+
 import warnings
 
-import json
+import ujson as json
 import mock
 import requests
 import requests.exceptions
@@ -33,6 +41,7 @@ import requests_mock
 from nose.tools import raises
 
 from influxdb.tests import LoadGevent
+
 LoadGevent.patch()
 from influxdb import InfluxDBClient
 from influxdb.resultset import ResultSet
@@ -288,51 +297,46 @@ class TestInfluxDBClient(unittest.TestCase):
 
     def test_write_points_with_precision(self):
         """Test write points with precision for TestInfluxDBClient object."""
-        with requests_mock.Mocker() as m:
-            m.register_uri(
-                requests_mock.POST,
-                "http://localhost:8086/write",
-                status_code=204
-            )
+        with self.cli.http_handler.Mock(self.cli.http_handler, response_status=204) as mock:
 
-            cli = InfluxDBClient(database='db')
+            self.cli = InfluxDBClient(database='db')
 
-            cli.write_points(self.dummy_points, time_precision='n')
+            self.cli.write_points(self.dummy_points, time_precision='n')
             self.assertEqual(
                 b'cpu_load_short,host=server01,region=us-west '
                 b'value=0.64 1257894000123456000\n',
                 m.last_request.body,
             )
 
-            cli.write_points(self.dummy_points, time_precision='u')
+            self.cli.write_points(self.dummy_points, time_precision='u')
             self.assertEqual(
                 b'cpu_load_short,host=server01,region=us-west '
                 b'value=0.64 1257894000123456\n',
                 m.last_request.body,
             )
 
-            cli.write_points(self.dummy_points, time_precision='ms')
+            self.cli.write_points(self.dummy_points, time_precision='ms')
             self.assertEqual(
                 b'cpu_load_short,host=server01,region=us-west '
                 b'value=0.64 1257894000123\n',
                 m.last_request.body,
             )
 
-            cli.write_points(self.dummy_points, time_precision='s')
+            self.cli.write_points(self.dummy_points, time_precision='s')
             self.assertEqual(
                 b"cpu_load_short,host=server01,region=us-west "
                 b"value=0.64 1257894000\n",
                 m.last_request.body,
             )
 
-            cli.write_points(self.dummy_points, time_precision='m')
+            self.cli.write_points(self.dummy_points, time_precision='m')
             self.assertEqual(
                 b'cpu_load_short,host=server01,region=us-west '
                 b'value=0.64 20964900\n',
                 m.last_request.body,
             )
 
-            cli.write_points(self.dummy_points, time_precision='h')
+            self.cli.write_points(self.dummy_points, time_precision='h')
             self.assertEqual(
                 b'cpu_load_short,host=server01,region=us-west '
                 b'value=0.64 349415\n',
@@ -343,9 +347,9 @@ class TestInfluxDBClient(unittest.TestCase):
         """Test write points w/bad precision TestInfluxDBClient object."""
         cli = InfluxDBClient()
         with self.assertRaisesRegexp(
-            Exception,
-            "Invalid time precision is given. "
-            "\(use 'n', 'u', 'ms', 's', 'm' or 'h'\)"
+                Exception,
+                "Invalid time precision is given. "
+                "\(use 'n', 'u', 'ms', 's', 'm' or 'h'\)"
         ):
             cli.write_points(
                 self.dummy_points,
@@ -424,31 +428,17 @@ class TestInfluxDBClient(unittest.TestCase):
 
     def test_create_database(self):
         """Test create database for TestInfluxDBClient object."""
-        with requests_mock.Mocker() as m:
-            m.register_uri(
-                requests_mock.GET,
-                "http://localhost:8086/query",
-                text='{"results":[{}]}'
-            )
+        with self.cli.http_handler.Mock(self.cli.http_handler) as mock:
             self.cli.create_database('new_db')
-            self.assertEqual(
-                m.last_request.qs['q'][0],
-                'create database "new_db"'
-            )
+            data = parse_qs(mock().get("data"))
+            self.assertEqual(data['q'][0], 'CREATE DATABASE "new_db"')
 
     def test_create_numeric_named_database(self):
         """Test create db w/numeric name for TestInfluxDBClient object."""
-        with requests_mock.Mocker() as m:
-            m.register_uri(
-                requests_mock.GET,
-                "http://localhost:8086/query",
-                text='{"results":[{}]}'
-            )
+        with self.cli.http_handler.Mock(self.cli.http_handler) as mock:
             self.cli.create_database('123')
-            self.assertEqual(
-                m.last_request.qs['q'][0],
-                'create database "123"'
-            )
+            data = parse_qs(mock().get("data"))
+            self.assertEqual(data['q'][0], 'CREATE DATABASE "123"')
 
     @raises(Exception)
     def test_create_database_fails(self):
@@ -458,30 +448,20 @@ class TestInfluxDBClient(unittest.TestCase):
 
     def test_drop_database(self):
         """Test drop database for TestInfluxDBClient object."""
-        with requests_mock.Mocker() as m:
-            m.register_uri(
-                requests_mock.GET,
-                "http://localhost:8086/query",
-                text='{"results":[{}]}'
-            )
+        with self.cli.http_handler.Mock(self.cli.http_handler) as mock:
             self.cli.drop_database('new_db')
             self.assertEqual(
-                m.last_request.qs['q'][0],
-                'drop database "new_db"'
+                parse_qs(mock().get("data"))['q'][0],
+                'DROP DATABASE "new_db"'
             )
 
     def test_drop_numeric_named_database(self):
         """Test drop numeric db for TestInfluxDBClient object."""
-        with requests_mock.Mocker() as m:
-            m.register_uri(
-                requests_mock.GET,
-                "http://localhost:8086/query",
-                text='{"results":[{}]}'
-            )
+        with self.cli.http_handler.Mock(self.cli.http_handler) as mock:
             self.cli.drop_database('123')
             self.assertEqual(
-                m.last_request.qs['q'][0],
-                'drop database "123"'
+                parse_qs(mock().get('data'))['q'][0],
+                'DROP DATABASE "123"'
             )
 
     def test_get_list_database(self):
@@ -494,8 +474,8 @@ class TestInfluxDBClient(unittest.TestCase):
                      ['new_db_2']],
                  'columns': ['name']}]}
         ]}
-
-        with _mocked_session(self.cli, 'get', 200, json.dumps(data)):
+        with self.cli.http_handler.Mock(self.cli.http_handler, json.dumps(data)) as mock:
+            self.cli.drop_database('123')
             self.assertListEqual(
                 self.cli.get_list_database(),
                 [{'name': 'new_db_1'}, {'name': 'new_db_2'}]
@@ -512,73 +492,59 @@ class TestInfluxDBClient(unittest.TestCase):
         """Test create default ret policy for TestInfluxDBClient object."""
         example_response = '{"results":[{}]}'
 
-        with requests_mock.Mocker() as m:
-            m.register_uri(
-                requests_mock.GET,
-                "http://localhost:8086/query",
-                text=example_response
-            )
+        with self.cli.http_handler.Mock(self.cli.http_handler, example_response) as mock:
             self.cli.create_retention_policy(
                 'somename', '1d', 4, default=True, database='db'
             )
 
             self.assertEqual(
-                m.last_request.qs['q'][0],
-                'create retention policy "somename" on '
-                '"db" duration 1d replication 4 default'
+                parse_qs(mock().get("data"))['q'][0],
+                'CREATE RETENTION POLICY "somename" ON "db" DURATION 1d REPLICATION 4 DEFAULT'
+
             )
 
     def test_create_retention_policy(self):
         """Test create retention policy for TestInfluxDBClient object."""
         example_response = '{"results":[{}]}'
 
-        with requests_mock.Mocker() as m:
-            m.register_uri(
-                requests_mock.GET,
-                "http://localhost:8086/query",
-                text=example_response
-            )
+        with self.cli.http_handler.Mock(self.cli.http_handler, example_response) as mock:
             self.cli.create_retention_policy(
                 'somename', '1d', 4, database='db'
             )
-
+            data = parse_qs(mock().get("data"))
             self.assertEqual(
-                m.last_request.qs['q'][0],
-                'create retention policy "somename" on '
-                '"db" duration 1d replication 4'
+                data['q'][0],
+                'CREATE RETENTION POLICY "somename" ON "db" DURATION 1d REPLICATION 4'
             )
 
     def test_alter_retention_policy(self):
         """Test alter retention policy for TestInfluxDBClient object."""
         example_response = '{"results":[{}]}'
 
-        with requests_mock.Mocker() as m:
-            m.register_uri(
-                requests_mock.GET,
-                "http://localhost:8086/query",
-                text=example_response
-            )
+        with self.cli.http_handler.Mock(self.cli.http_handler, example_response) as mock:
             # Test alter duration
             self.cli.alter_retention_policy('somename', 'db',
                                             duration='4d')
+            data = parse_qs(mock().get("data"))
+
             self.assertEqual(
-                m.last_request.qs['q'][0],
-                'alter retention policy "somename" on "db" duration 4d'
+                data['q'][0],
+                'ALTER RETENTION POLICY "somename" ON "db" DURATION 4d'
             )
             # Test alter replication
             self.cli.alter_retention_policy('somename', 'db',
                                             replication=4)
             self.assertEqual(
-                m.last_request.qs['q'][0],
-                'alter retention policy "somename" on "db" replication 4'
+                parse_qs(mock().get("data"))['q'][0],
+                'ALTER RETENTION POLICY "somename" ON "db" REPLICATION 4'
             )
 
             # Test alter default
             self.cli.alter_retention_policy('somename', 'db',
                                             default=True)
             self.assertEqual(
-                m.last_request.qs['q'][0],
-                'alter retention policy "somename" on "db" default'
+                parse_qs(mock().get("data"))['q'][0],
+                'ALTER RETENTION POLICY "somename" ON "db" DEFAULT'
             )
 
     @raises(Exception)
@@ -592,16 +558,12 @@ class TestInfluxDBClient(unittest.TestCase):
         """Test drop retention policy for TestInfluxDBClient object."""
         example_response = '{"results":[{}]}'
 
-        with requests_mock.Mocker() as m:
-            m.register_uri(
-                requests_mock.GET,
-                "http://localhost:8086/query",
-                text=example_response
-            )
+        with self.cli.http_handler.Mock(self.cli.http_handler,
+                                        response_buffer=example_response) as mock:
             self.cli.drop_retention_policy('somename', 'db')
             self.assertEqual(
-                m.last_request.qs['q'][0],
-                'drop retention policy "somename" on "db"'
+                parse_qs(mock().get('data'))['q'][0],
+                'DROP RETENTION POLICY "somename" ON "db"'
             )
 
     @raises(Exception)
@@ -614,15 +576,11 @@ class TestInfluxDBClient(unittest.TestCase):
     def test_get_list_retention_policies(self):
         """Test get retention policies for TestInfluxDBClient object."""
         example_response = \
-            '{"results": [{"series": [{"values": [["fsfdsdf", "24h0m0s", 2]],'\
+            '{"results": [{"series": [{"values": [["fsfdsdf", "24h0m0s", 2]],' \
             ' "columns": ["name", "duration", "replicaN"]}]}]}'
 
-        with requests_mock.Mocker() as m:
-            m.register_uri(
-                requests_mock.GET,
-                "http://localhost:8086/query",
-                text=example_response
-            )
+        with self.cli.http_handler.Mock(self.cli.http_handler,
+                                        response_buffer=example_response):
             self.assertListEqual(
                 self.cli.get_list_retention_policies("db"),
                 [{'duration': '24h0m0s',
@@ -632,6 +590,7 @@ class TestInfluxDBClient(unittest.TestCase):
     @mock.patch('requests.Session.request')
     def test_request_retry(self, mock_request):
         """Test that two connection errors will be handled."""
+
         class CustomMock(object):
             """Create custom mock object for test."""
 
@@ -659,6 +618,7 @@ class TestInfluxDBClient(unittest.TestCase):
     @mock.patch('requests.Session.request')
     def test_request_retry_raises(self, mock_request):
         """Test that three connection errors will not be handled."""
+
         class CustomMock(object):
             """Create custom mock object for test."""
 
@@ -686,6 +646,7 @@ class TestInfluxDBClient(unittest.TestCase):
     @mock.patch('requests.Session.request')
     def test_random_request_retry(self, mock_request):
         """Test that a random number of connection errors will be handled."""
+
         class CustomMock(object):
             """Create custom mock object for test."""
 
@@ -713,6 +674,7 @@ class TestInfluxDBClient(unittest.TestCase):
     @mock.patch('requests.Session.request')
     def test_random_request_retry_raises(self, mock_request):
         """Test a random number of conn errors plus one will not be handled."""
+
         class CustomMock(object):
             """Create custom mock object for test."""
 
@@ -745,14 +707,8 @@ class TestInfluxDBClient(unittest.TestCase):
             '{"results":[{"series":[{"columns":["user","admin"],'
             '"values":[["test",false]]}]}]}'
         )
-
-        with requests_mock.Mocker() as m:
-            m.register_uri(
-                requests_mock.GET,
-                "http://localhost:8086/query",
-                text=example_response
-            )
-
+        with self.cli.http_handler.Mock(self.cli.http_handler,
+                                        response_buffer=example_response):
             self.assertListEqual(
                 self.cli.get_list_users(),
                 [{'user': 'test', 'admin': False}]
@@ -775,25 +731,20 @@ class TestInfluxDBClient(unittest.TestCase):
     def test_grant_admin_privileges(self):
         """Test grant admin privs for TestInfluxDBClient object."""
         example_response = '{"results":[{}]}'
-
-        with requests_mock.Mocker() as m:
-            m.register_uri(
-                requests_mock.GET,
-                "http://localhost:8086/query",
-                text=example_response
-            )
+        with self.cli.http_handler.Mock(self.cli.http_handler, response_buffer=example_response) as mock:
             self.cli.grant_admin_privileges('test')
 
             self.assertEqual(
-                m.last_request.qs['q'][0],
-                'grant all privileges to "test"'
+                parse_qs(mock().get('data'))['q'][0],
+                'GRANT ALL PRIVILEGES TO "test"'
             )
 
     @raises(Exception)
     def test_grant_admin_privileges_invalid(self):
         """Test grant invalid admin privs for TestInfluxDBClient object."""
         cli = InfluxDBClient('host', 8086, 'username', 'password')
-        with _mocked_session(cli, 'get', 400):
+        with self.cli.http_handler.Mock(cli.http_handler,
+                                        response_status=400) as mock:
             self.cli.grant_admin_privileges('')
 
     def test_revoke_admin_privileges(self):
@@ -879,8 +830,8 @@ class TestInfluxDBClient(unittest.TestCase):
                      ['db3', 'NO PRIVILEGES']]}
             ]}
         ]}
-
-        with _mocked_session(self.cli, 'get', 200, json.dumps(data)):
+        with self.cli.http_handler.Mock(self.cli.http_handler,
+                                        response_buffer=json.dumps(data)):
             self.assertListEqual(
                 self.cli.get_list_privileges('test'),
                 [{'database': 'db1', 'privilege': 'READ'},
@@ -914,12 +865,7 @@ class TestInfluxDBClient(unittest.TestCase):
             '[{"statement_id":0,"series":[{"name":"memory","columns":' \
             '["fieldKey","fieldType"],"values":[["value","integer"]]}]}]}\n'
 
-        with requests_mock.Mocker() as m:
-            m.register_uri(
-                requests_mock.GET,
-                "http://localhost:8086/query",
-                text=example_response
-            )
+        with self.cli.http_handler.Mock(self.cli.http_handler, example_response) as mock:
             response = self.cli.query('show series limit 4 offset 0',
                                       chunked=True, chunk_size=4)
             self.assertTrue(len(response) == 4)

@@ -70,7 +70,7 @@ class HttpClient(object):
     def gevent_from_pool(self, url, http_request):
         """
         Get a gevent client from url and request.
-       
+
         :param url: URL
         :type url: URL
         :param http_request: HttpRequest
@@ -131,7 +131,7 @@ class HttpClient(object):
     def urllib3_from_pool(self, http_request):
         """
         Get a u3 pool from url and request.
-       
+
         :param http_request: HttpRequest
         :type http_request: HttpRequest
         :return Object
@@ -177,7 +177,7 @@ class HttpClient(object):
     def go_http(self, http_request):
         """
         Perform an http request.
-       
+
         :param http_request: HttpRequest
         :type http_request: HttpRequest
         :return HttpResponse
@@ -252,7 +252,7 @@ class HttpClient(object):
     def _go_gevent(self, http_request, http_response):
         """
         Perform an http request.
-       
+
         :param http_request: HttpRequest
         :type http_request: HttpRequest
         :param http_response: HttpResponse
@@ -302,7 +302,7 @@ class HttpClient(object):
         # Read
         ms_start = SolBase.mscurrent()
         logger.debug("Read now")
-        http_response.buffer = response.read()
+        http_response.set_buffer(response.read())
         SolBase.sleep(0)
         logger.debug("Read done, ms=%s", SolBase.msdiff(ms_start))
         if response.content_length:
@@ -314,7 +314,7 @@ class HttpClient(object):
                 http_response.content_length = 0
 
         # noinspection PyProtectedMember
-        for k, v in response._headers_index.iteritems():
+        for k, v in iter(response._headers_index.items()):
             http_response.headers[k] = v
 
         response.should_close()
@@ -329,7 +329,7 @@ class HttpClient(object):
     def _go_urllib3(self, http_request, http_response):
         """
         Perform an http request.
-       
+
         :param http_request: HttpRequest
         :type http_request: HttpRequest
         :param http_response: HttpResponse
@@ -382,9 +382,9 @@ class HttpClient(object):
 
         # Ok
         http_response.status_code = r.status
-        for k, v in r.headers.iteritems():
+        for k, v in iter(r.headers.items()):
             http_response.headers[k] = v
-        http_response.buffer = r.data
+        http_response.set_buffer(r.data)
         http_response.content_length = len(http_response.buffer)
 
         # Over

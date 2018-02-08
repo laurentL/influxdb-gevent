@@ -8,7 +8,7 @@ from __future__ import unicode_literals
 
 from datetime import timedelta
 
-import json
+import ujson as json
 import unittest
 import warnings
 import requests_mock

@@ -102,6 +102,7 @@ def _get_unicode(data, force=False):
         return ''
     elif force:
         if PY2:
+            # noinspection PyCompatibility
             return unicode(data)
         else:
             return str(data)

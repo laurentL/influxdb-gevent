@@ -25,11 +25,13 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
+import sys
+if sys.version_info[0] == 3:
+    from urllib.parse import urlencode
+else:
+    from urllib import urlencode
 
-try:
-    import ujson as json
-except:
-    import json
+import ujson as json
 
 import logging
 
@@ -39,20 +41,21 @@ from influxdb.Http.HttpClient import HttpClient
 from influxdb.Http.HttpRequest import HttpRequest
 from influxdb.exceptions import InfluxDBServerError, InfluxDBClientError
 from influxdb.http_handler import HTTPHandler
+
 logger = logging.getLogger(__name__)
 
 
 class Request(HTTPHandler):
     """Http interface using request."""
 
-    def __init__(self, baseurl, headers, username, password, verify_ssl,
+    def __init__(self, base_url, headers, username, password, verify_ssl,
                  timeout, retries, proxies,
                  database=False, zip_enabled=False):
         """
         Request.
 
-        :param baseurl: url
-        :type baseurl: basestring
+        :param base_url: url
+        :type base_url: basestring
         :param headers: headers
         :type headers: dict
         :param username: username
@@ -73,7 +76,7 @@ class Request(HTTPHandler):
         :type zip_enabled: bool
         """
         super(Request, self).__init__(
-            baseurl, headers, username, password, verify_ssl,
+            base_url, headers, username, password, verify_ssl,
             timeout, retries, proxies, database=database,
             zip_enabled=zip_enabled)
 
@@ -126,9 +129,10 @@ class Request(HTTPHandler):
         hreq = HttpRequest()
 
         # Config
-        hreq.connection_timeout_ms = self._timeout
-        hreq.network_timeout_ms = self._timeout
-        hreq.general_timeout_ms = self._timeout
+        if self._timeout is not None:
+            hreq.connection_timeout_ms = self._timeout
+            hreq.network_timeout_ms = self._timeout
+            hreq.general_timeout_ms = self._timeout
         hreq.keep_alive = True
         hreq.https_insecure = False
 
@@ -142,11 +146,13 @@ class Request(HTTPHandler):
             # Headers
             hreq.headers["Content-Encoding"] = "gzip"
             hreq.headers["Accept-Encoding"] = "gzip"
-        hresp = None
+
+        # Data to send
+        hreq.post_data = data
+        hreq.uri += '?%s' % urlencode(params)
+
         while retry:
             try:
-                # Data to send
-                hreq.post_data = data
 
                 # Fire http now
                 logger.info("Firing http now, hreq=%s", hreq)

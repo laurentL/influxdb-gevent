@@ -37,9 +37,6 @@ with open('README.rst', 'r') as f:
 using_pypy = hasattr(sys, "pypy_version_info")
 if not using_pypy:
     test_requires = test_requires + optional_test_requires
-    requires = requires + ['ujson']
-else:
-    requires = requires + ['json']
 
 setup(
     name='influxdb',

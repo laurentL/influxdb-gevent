@@ -3,8 +3,10 @@
 
 import argparse
 
-from influxdb import InfluxDBClient
+from pythonsol.SolBase import SolBase
 
+from influxdb import InfluxDBClient
+SolBase.voodoo_init()
 
 def main(host='localhost', port=8086):
     """Instantiate a connection to the InfluxDB."""
@@ -13,7 +15,7 @@ def main(host='localhost', port=8086):
     dbname = 'example'
     dbuser = 'smly'
     dbuser_password = 'my_secret_password'
-    query = 'select value from cpu_load_short;'
+    query = 'select * from cpu_load_short;'
     client = InfluxDBClient(host, port, user, password, dbname)
 
     json_body = [
@@ -30,14 +32,32 @@ def main(host='localhost', port=8086):
                 "String_value": "Text",
                 "Bool_value": True
             }
+        },
+        {
+            "measurement": "cpu_load_short",
+            "tags": {
+                "host": "server02",
+                "region": "us-west"
+            },
+            "time": client.date_format(),
+            "fields": {
+                "Float_value": 0.64,
+                "Int_value": 3,
+                "String_value": "Text",
+                "Bool_value": True
+            }
         }
     ]
 
     print("Drop database: %s" % dbname)
     client.drop_database(dbname)
 
+    print('list Database: %s' % client.get_list_database())
+
     print("Create database: " + dbname)
     client.create_database(dbname)
+
+    print('list Database: %s' % client.get_list_database())
 
     print("Create a retention policy")
     client.create_retention_policy('awesome_policy', '3d', 3, default=True)
@@ -49,9 +69,9 @@ def main(host='localhost', port=8086):
     client.write_points(json_body)
 
     print("Querying data: " + query)
-    result = client.query(query)
+    result = client.query(query, chunked=True, chunk_size=1)
 
-    print("Result: {0}".format(result))
+    print("Result: {0}".format(list(result)))
 
     print("Switch user: " + user)
     client.switch_user(user, password)

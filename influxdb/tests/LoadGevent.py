@@ -37,3 +37,4 @@ def patch():
     if force_gevent:
         from pythonsol.SolBase import SolBase
         SolBase.voodoo_init()
+        SolBase.logging_init(force_reset=True, log_to_syslog=False, log_to_console=True)

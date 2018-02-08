@@ -8,16 +8,24 @@ from __future__ import unicode_literals
 
 from sys import version_info
 
-import json
+import ujson as json
 import socket
 import sys
 
 from datetime import datetime
 
+import logging
+
+
+import re
+from pythonsol.SolBase import SolBase
+
 from influxdb.line_protocol import make_lines, quote_ident, quote_literal
 
 from influxdb.resultset import ResultSet
 from .exceptions import InfluxDBClientError
+
+logger = logging.getLogger(__name__)
 
 try:
     xrange
@@ -25,12 +33,12 @@ except NameError:
     xrange = range
 
 if version_info[0] == 3:
-    from urllib.parse import urlparse
+    from urllib.parse import urlparse, urlencode
 else:
-    from urlparse import urlparse
+    import urlparse
+    from urllib import urlencode
 
-
-if 'SolBase' in sys.modules:
+if 'pythonsol' in sys.modules:
     GEVENT = True
     from influxdb.request_gevent import Request
 else:
@@ -104,7 +112,7 @@ class InfluxDBClient(object):
             'Accept': 'text/plain'
         }
 
-        self.http_handler = Request(baseurl=baseurl, headers=headers,
+        self.http_handler = Request(base_url=baseurl, headers=headers,
                                     username=username, password=password,
                                     verify_ssl=verify_ssl, timeout=timeout,
                                     retries=retries, proxies=proxies,
@@ -279,42 +287,32 @@ class InfluxDBClient(object):
 
         :param query: the actual query string
         :type query: str
-
-        :param params: additional parameters for the request,
-            defaults to {}
+        :param params: additional parameters for the request, defaults to {}
         :type params: dict
-
         :param epoch: response timestamps to be in epoch format either 'h',
             'm', 's', 'ms', 'u', or 'ns',defaults to `None` which is
             RFC3339 UTC format with nanosecond precision
         :type epoch: str
-
-        :param expected_response_code: the expected status code of response,
-            defaults to 200
+        :param expected_response_code: the expected status code of response, defaults to 200
         :type expected_response_code: int
-
         :param database: database to query, defaults to None
         :type database: str
-
-        :param raise_errors: Whether or not to raise exceptions when InfluxDB
-            returns errors, defaults to True
+        :param raise_errors: Whether or not to raise exceptions when InfluxDB returns errors,
+            defaults to True
         :type raise_errors: bool
-
-        :param chunked: Enable to use chunked responses from InfluxDB.
-            With ``chunked`` enabled, one ResultSet is returned per chunk
-            containing all results within that chunk
+        :param chunked: Enable to use chunked responses from InfluxDB. With ``chunked``
+            enabled, one ResultSet is returned per chunk containing all results
+            within that chunk
         :type chunked: bool
-
         :param chunk_size: Size of each chunk to tell InfluxDB to use.
         :type chunk_size: int
-
         :returns: the queried data
         :rtype: :class:`~.ResultSet`
         """
         if params is None:
             params = {}
 
-        params['q'] = query
+        data = urlencode({'q': query})
         params['db'] = database or self.http_handler.get_database()
 
         if epoch is not None:
@@ -329,26 +327,46 @@ class InfluxDBClient(object):
             url="query",
             method='GET',
             params=params,
-            data=None,
-            expected_response_code=expected_response_code
+            data=data,
+            expected_response_code=expected_response_code,
+            headers={
+                'Content-type': 'application/x-www-form-urlencoded',
+                'Accept': 'text/plain'
+            }
         )
+        results = []
 
         if chunked:
-            return self._read_chunked_response(response)
-
-        data = response.json()
-
-        results = [
-            ResultSet(result, raise_errors=raise_errors)
-            for result
-            in data.get('results', [])
-        ]
+            results = self._read_chunked_response(response, raise_errors=raise_errors)
+        else:
+            results = self.parse_result(response.content, raise_errors=raise_errors)
 
         # TODO(aviau): Always return a list. (This would be a breaking change)
         if len(results) == 1:
             return results[0]
 
         return results
+
+    def parse_result(self, result, raise_errors=True):
+        """
+        
+        :param result: 
+        :type result: 
+        :return: 
+        :rtype: 
+        """
+        r = []
+        try:
+            data = json.loads(result)
+        except ValueError as e:
+            logger.warning(SolBase.extostr(e))
+            logger.warning(result)
+            data = {}
+
+        for result in data.get('results', []):
+            self.check_error(result)
+            r.append(ResultSet(result, raise_errors=raise_errors))
+        return r
 
     def write_points(self,
                      points,
@@ -564,10 +582,11 @@ class InfluxDBClient(object):
         .. note:: at least one of duration, replication, or default flag
             should be set. Otherwise the operation will fail.
         """
+        database = database or self.http_handler.get_database()
         query_string = (
             "ALTER RETENTION POLICY {0} ON {1}"
         ).format(quote_ident(name),
-                 quote_ident(database or self.http_handler.get_database()))
+                 quote_ident(database))
         if duration:
             query_string += " DURATION {0}".format(duration)
         if replication:
@@ -575,7 +594,7 @@ class InfluxDBClient(object):
         if default is True:
             query_string += " DEFAULT"
 
-        self.query(query_string)
+        self.query(query_string, database=database)
 
     def drop_retention_policy(self, name, database=None):
         """
@@ -828,6 +847,22 @@ class InfluxDBClient(object):
         :rtype: str
         """
         return date.strftime('%Y-%m-%dT%H:%M:%SZ')
+
+    def check_error(self, result):
+        """
+        Check a result.
+        
+        Raise an error if level > warning 
+        :param result: 
+        :type result: dict 
+        """
+
+        for msg in result.get(u'messages', []):
+            message = msg.get(u'text', '')
+            level = msg.get(u'level', 'DEBUG')
+            # unknown log level set to ERROR
+            logger.log(level=getattr(logging, level.upper(), '40'),
+                       msg=__name__ + ' ' + message)
 
 
 def _parse_dsn(dsn):

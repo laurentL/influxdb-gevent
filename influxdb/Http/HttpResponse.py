@@ -45,6 +45,7 @@ class HttpResponse(object):
 
         # Response buffer
         self.buffer = None
+        self.content = None
 
         # Response headers
         self.headers = {
@@ -56,11 +57,16 @@ class HttpResponse(object):
 
         # Content-length
         self.content_length = 0
+    def iter_lines(self):
+        """Generate a line by line stream"""
+        for l in  self.content.split("\n"):
+            if (len(l) > 0):
+                yield l
 
     def __str__(self):
         """
         To string override.
-       
+
         :return: A string
         :rtype string
         """
@@ -74,3 +80,8 @@ class HttpResponse(object):
                     self.http_request.headers,
                     SolBase.extostr(self.exception) if self.exception else "None",
                     )
+
+    def set_buffer(self, data):
+        """Populate content and buffer."""
+        self.buffer = data.decode('utf8')
+        self.content = self.buffer
