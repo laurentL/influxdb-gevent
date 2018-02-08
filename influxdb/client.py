@@ -134,7 +134,7 @@ class InfluxDBClient(object):
 
     @classmethod
     def from_dsn(cls, dsn, **kwargs):
-        r"""Generate an instance of InfluxDBClient from given data source name.
+        """Generate an instance of InfluxDBClient from given data source name.
 
         Return an instance of :class:`~.InfluxDBClient` from the provided
         data source name. Supported schemes are "influxdb", "https+influxdb"

@@ -39,6 +39,7 @@ class DataFrameClient(InfluxDBClient):
     The client reads and writes from pandas DataFrames.
     """
 
+
     EPOCH = pd.Timestamp('1970-01-01 00:00:00.000+00:00')
 
     def write_points(self,
